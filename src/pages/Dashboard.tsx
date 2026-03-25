@@ -47,7 +47,7 @@ export default function Dashboard() {
   }, [user]);
 
   const fetchSlides = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("slides")
       .select("*")
       .order("updated_at", { ascending: false });
@@ -56,7 +56,7 @@ export default function Dashboard() {
       console.error("Error fetching slides:", error);
       setSlides([]);
     } else {
-      setSlides(data || []);
+      setSlides((data as Slide[]) || []);
     }
     setLoading(false);
   };
