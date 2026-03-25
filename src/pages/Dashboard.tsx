@@ -62,7 +62,7 @@ export default function Dashboard() {
   };
 
   const createSlide = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("slides")
       .insert({
         title: "Uusi esitys",
@@ -77,7 +77,7 @@ export default function Dashboard() {
       return;
     }
     if (data) {
-      navigate(`/slides/${data.id}`);
+      navigate(`/slides/${(data as any).id}`);
     }
   };
 

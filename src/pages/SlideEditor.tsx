@@ -29,7 +29,7 @@ export default function SlideEditor() {
   }, [id, user]);
 
   const fetchSlide = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("slides")
       .select("*")
       .eq("id", id!)
@@ -47,7 +47,7 @@ export default function SlideEditor() {
 
   const saveSlide = async () => {
     setSaving(true);
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("slides")
       .update({ title, html_content: htmlContent, updated_at: new Date().toISOString() })
       .eq("id", id!);
@@ -62,7 +62,7 @@ export default function SlideEditor() {
 
   const deleteSlide = async () => {
     if (!confirm("Haluatko varmasti poistaa tämän esityksen?")) return;
-    await supabase.from("slides").delete().eq("id", id!);
+    await (supabase as any).from("slides").delete().eq("id", id!);
     navigate("/");
   };
 
@@ -70,7 +70,6 @@ export default function SlideEditor() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center justify-between h-14 px-4">
           <div className="flex items-center gap-3">
@@ -111,7 +110,6 @@ export default function SlideEditor() {
         </div>
       </header>
 
-      {/* Editor area */}
       <div className="flex-1">
         {view === "preview" ? (
           <div className="h-full flex items-center justify-center p-8 bg-muted/30">
