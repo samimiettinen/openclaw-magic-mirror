@@ -18,13 +18,7 @@ import { SlideViewer } from "@/components/SlideViewer";
 import { Plus, LogOut, Presentation } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-interface Slide {
-  id: string;
-  title: string;
-  html_content: string;
-  created_at: string;
-  updated_at: string;
-}
+type Slide = SlideRow;
 
 const SAMPLE_SLIDE = `
 <div style="width:1920px;height:1080px;background:linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);display:flex;align-items:center;justify-content:center;font-family:'Inter',system-ui,sans-serif;color:white;padding:120px;">
