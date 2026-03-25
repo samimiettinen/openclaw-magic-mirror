@@ -8,7 +8,7 @@ import { SlideCanvas } from "@/components/deck/SlideCanvas";
 import { SlideRenderer } from "@/components/deck/SlideRenderer";
 import { SlideEditorPanel } from "@/components/deck/SlideEditorPanel";
 import { Deck, DeckSlide, SlideType, SLIDE_TYPES, getSlideTypeDefaults } from "@/lib/slide-types";
-import { ArrowLeft, Save, Play, Plus, Copy, Trash2, ChevronUp, ChevronDown, Eye, Pencil } from "lucide-react";
+import { ArrowLeft, Save, Play, Plus, Copy, Trash2, ChevronUp, ChevronDown, Eye, Pencil, FolderOutput } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,6 +26,10 @@ export default function DeckEditor() {
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [showTypeSelector, setShowTypeSelector] = useState(false);
   const [deckTitle, setDeckTitle] = useState("");
+  const [showCopyToDeck, setShowCopyToDeck] = useState(false);
+  const [copySlide, setCopySlide] = useState<DeckSlide | null>(null);
+  const [otherDecks, setOtherDecks] = useState<Deck[]>([]);
+  const [copyingTo, setCopyingTo] = useState<string | null>(null);
 
   const selectedSlide = slides.find((s) => s.id === selectedSlideId) || null;
 
@@ -52,9 +56,7 @@ export default function DeckEditor() {
 
   const save = async () => {
     setSaving(true);
-    // Save deck title
     await (supabase as any).from("decks").update({ title: deckTitle, updated_at: new Date().toISOString() }).eq("id", id!);
-    // Save all slides
     for (const slide of slides) {
       await (supabase as any).from("deck_slides")
         .update({ title: slide.title, content: slide.content, order_index: slide.order_index, section_label: slide.section_label, notes: slide.notes, updated_at: new Date().toISOString() })
@@ -79,7 +81,6 @@ export default function DeckEditor() {
 
   const duplicateSlide = async (slide: DeckSlide) => {
     const orderIndex = slide.order_index + 1;
-    // Shift subsequent slides
     const updated = slides.map((s) => s.order_index >= orderIndex ? { ...s, order_index: s.order_index + 1 } : s);
     const { data } = await (supabase as any).from("deck_slides")
       .insert({ deck_id: id!, title: `${slide.title} (kopio)`, slide_type: slide.slide_type, order_index: orderIndex, content: slide.content, section_label: slide.section_label, notes: slide.notes })
@@ -88,7 +89,6 @@ export default function DeckEditor() {
       const newSlides = [...updated, data as DeckSlide].sort((a, b) => a.order_index - b.order_index);
       setSlides(newSlides);
       setSelectedSlideId((data as any).id);
-      // Update order in DB
       for (const s of newSlides) {
         await (supabase as any).from("deck_slides").update({ order_index: s.order_index }).eq("id", s.id);
       }
@@ -114,6 +114,32 @@ export default function DeckEditor() {
     setSlides(updated);
     for (const s of updated) {
       await (supabase as any).from("deck_slides").update({ order_index: s.order_index }).eq("id", s.id);
+    }
+  };
+
+  // Cross-deck copy
+  const openCopyToDeck = async (slide: DeckSlide) => {
+    setCopySlide(slide);
+    const { data } = await (supabase as any).from("decks").select("*").neq("id", id!).order("updated_at", { ascending: false });
+    setOtherDecks((data as Deck[]) || []);
+    setShowCopyToDeck(true);
+  };
+
+  const copyToDeck = async (targetDeckId: string) => {
+    if (!copySlide) return;
+    setCopyingTo(targetDeckId);
+    // Get current slide count in target deck for order_index
+    const { data: existingSlides } = await (supabase as any).from("deck_slides").select("id").eq("deck_id", targetDeckId);
+    const orderIndex = existingSlides ? existingSlides.length : 0;
+    const { error } = await (supabase as any).from("deck_slides")
+      .insert({ deck_id: targetDeckId, title: copySlide.title, slide_type: copySlide.slide_type, order_index: orderIndex, content: copySlide.content, section_label: copySlide.section_label, notes: copySlide.notes });
+    setCopyingTo(null);
+    if (error) {
+      toast({ title: "Kopiointi epäonnistui", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Slide kopioitu!", description: `"${copySlide.title}" kopioitu toiseen esitykseen` });
+      setShowCopyToDeck(false);
+      setCopySlide(null);
     }
   };
 
@@ -183,6 +209,10 @@ export default function DeckEditor() {
                       <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); duplicateSlide(slide); }}>
                         <Copy className="h-3 w-3" />
                       </Button>
+                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); openCopyToDeck(slide); }}
+                        title="Kopioi toiseen esitykseen">
+                        <FolderOutput className="h-3 w-3" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={(e) => { e.stopPropagation(); deleteSlide(slide.id); }}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -212,7 +242,6 @@ export default function DeckEditor() {
               </div>
             ) : (
               <>
-                {/* Preview */}
                 <div className="flex-1 flex items-center justify-center p-6 bg-muted/10">
                   <div className="w-full max-w-4xl">
                     <SlideCanvas className="rounded-xl shadow-2xl border border-border/20">
@@ -220,7 +249,6 @@ export default function DeckEditor() {
                     </SlideCanvas>
                   </div>
                 </div>
-                {/* Editor panel */}
                 <div className="w-80 border-l border-border/30 bg-card/20 flex flex-col shrink-0">
                   <div className="p-4 border-b border-border/30">
                     <Input value={selectedSlide.title} onChange={(e) => updateSlideTitle(e.target.value)}
@@ -272,6 +300,56 @@ export default function DeckEditor() {
               </button>
             ))}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Copy to another deck dialog */}
+      <Dialog open={showCopyToDeck} onOpenChange={(open) => { setShowCopyToDeck(open); if (!open) setCopySlide(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Kopioi slide toiseen esitykseen</DialogTitle>
+          </DialogHeader>
+          {copySlide && (
+            <div className="py-1">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/30 mb-4">
+                <div className="w-20 shrink-0">
+                  <SlideCanvas className="rounded">
+                    <SlideRenderer slideType={copySlide.slide_type} content={copySlide.content} />
+                  </SlideCanvas>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium truncate">{copySlide.title}</div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    {SLIDE_TYPES.find((t) => t.type === copySlide.slide_type)?.label}
+                  </div>
+                </div>
+              </div>
+
+              {otherDecks.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">Ei muita esityksiä joihin kopioida</p>
+              ) : (
+                <ScrollArea className="max-h-64">
+                  <div className="space-y-1.5">
+                    {otherDecks.map((d) => (
+                      <button key={d.id}
+                        className="w-full flex items-center justify-between p-3 rounded-lg border border-border/40 hover:border-primary/30 hover:bg-primary/5 transition-all text-left group disabled:opacity-50"
+                        onClick={() => copyToDeck(d.id)}
+                        disabled={copyingTo === d.id}
+                      >
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">{d.title}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {d.status} · {new Date(d.updated_at).toLocaleDateString("fi-FI")}
+                          </div>
+                        </div>
+                        <FolderOutput className={`h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary transition-colors ${copyingTo === d.id ? "animate-pulse" : ""}`} />
+                      </button>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
