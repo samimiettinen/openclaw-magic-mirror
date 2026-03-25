@@ -4,9 +4,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
-import Dashboard from "./pages/Dashboard";
+import DeckLibrary from "./pages/DeckLibrary";
+import DeckEditor from "./pages/DeckEditor";
+import PresentationViewer from "./pages/PresentationViewer";
 import Login from "./pages/Login";
-import SlideEditor from "./pages/SlideEditor";
 import NotFound from "./pages/NotFound";
 import SamanthaArtifact from "./pages/SamanthaArtifact";
 
@@ -20,9 +21,10 @@ const App = () => (
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<DeckLibrary />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/slides/:id" element={<SlideEditor />} />
+            <Route path="/decks/:id" element={<DeckEditor />} />
+            <Route path="/decks/:id/present" element={<PresentationViewer />} />
             <Route path="/artifacts/samantha" element={<SamanthaArtifact />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
