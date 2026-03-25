@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import SlideEditor from "./pages/SlideEditor";
 import NotFound from "./pages/NotFound";
+import SamanthaArtifact from "./pages/SamanthaArtifact";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
             <Route path="/" element={<Dashboard />} />
             <Route path="/login" element={<Login />} />
             <Route path="/slides/:id" element={<SlideEditor />} />
+            <Route path="/artifacts/samantha" element={<SamanthaArtifact />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
