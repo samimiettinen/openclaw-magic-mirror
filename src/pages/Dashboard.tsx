@@ -3,6 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+
+// Type for slides table until auto-generated types catch up
+type SlideRow = {
+  id: string;
+  user_id: string;
+  title: string;
+  html_content: string;
+  created_at: string;
+  updated_at: string;
+};
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SlideViewer } from "@/components/SlideViewer";
 import { Plus, LogOut, Presentation } from "lucide-react";
